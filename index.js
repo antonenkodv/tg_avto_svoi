@@ -1,5 +1,14 @@
 const TelegramBot = require('node-telegram-bot-api');
+const mongoose = require('mongoose')
 require('dotenv').config()
+
+const mongoURL = "mongodb+srv://dbUser:" + process.env.MONGODB_PASSWORD + "@cluster1.kbt97.mongodb.net/myFirstDatabase?retryWrites=true&w=majority"
+
+mongoose.connect((mongoURL), {
+    useNewUrlParser: true,
+    useUnifiedTopology: true
+})
+
 
 // replace the value below with the Telegram token you receive from @BotFather
 const token = process.env.TELEGRAM_BOT_TOKEN;
