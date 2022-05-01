@@ -4,7 +4,7 @@ const token = process.env.TELEGRAM_BOT_TOKEN;
 
 const bot = new TelegramBot(token, {
     polling: true,
-    filepath: false,
+    filepath: true,
 });
 
 module.exports={bot}

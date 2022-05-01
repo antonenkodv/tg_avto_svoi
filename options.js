@@ -6,7 +6,7 @@ module.exports = {
             remove_keyboard : true,
             keyboard: [
                 [{
-                    text: "Присоедениться",
+                    text: "Приєднатися",
                 }]
             ]
         })
@@ -26,10 +26,10 @@ module.exports = {
         reply_markup: JSON.stringify({
             one_time_keyboard: true,
             inline_keyboard: [
-                [{text: 'меньше 1000 кг ', callback_data: 'setCarrying_A'},
-                    {text: 'от 1000кг до 3000кг', callback_data: 'setCarrying_B'}],
-                [{text: 'от 3000кг до 5000кг', callback_data: 'setCarrying_C'},
-                    {text: 'свыше  5000кг', callback_data: 'setCarrying_D'}]
+                [{text: 'меньше 1000 кг ', callback_data: 'setCarrying_A'}],
+                    [{text: 'від 1000кг до 3000кг', callback_data: 'setCarrying_B'}],
+                [{text: 'від 3000кг до 5000кг', callback_data: 'setCarrying_C'}],
+                    [{text: 'більше 5000кг', callback_data: 'setCarrying_D'}]
             ]
         })
     },
@@ -40,7 +40,7 @@ module.exports = {
             remove_keyboard: true,
             keyboard: [
                 [{
-                    text: "Поделиться контактом",
+                    text: "Поділитись контактом",
                     request_contact: true
                 }]
             ]

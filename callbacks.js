@@ -3,12 +3,18 @@ const options = require("./options");
 const Car = require('./models/Car')
 const User = require('./models/User')
 const helpers = require("./helpers");
+const {verifyUser} = require("./functions");
 
 
 async function finishAddingCars(msg, chatId) {
     try {
+        const user = await User.findOne({chat_id: chatId}).populate('cars').lean().exec()
+        if (user.cars_approved) {
+            return verifyUser(user, chatId)
+        }
+
         await User.updateOne({chat_id: chatId}, {cars_approved: true})
-        return bot.sendMessage(chatId, `Будь ласка ,поділіться вашим контактом`, options.shareContact)
+        return bot.sendMessage(chatId, `Будь ласка ,поділіться вашим контактом📞`, options.shareContact)
     } catch (err) {
         console.log(err)
     }
@@ -16,13 +22,16 @@ async function finishAddingCars(msg, chatId) {
 
 async function addAuto(msg, chatId) {
     try {
-        let user = await User.findOne({chat_id: chatId}).populate('cars').lean().exec()
+        const user = await User.findOne({chat_id: chatId}).populate('cars').lean().exec()
+        if (user.cars_approved) {
+            return verifyUser(user, chatId)
+        }
         ids = user.cars.map(car => car._id)
         let cars = await Car.find().in("_id", [...ids])
         let str = ""
         cars.forEach((car, index) => str += `\n${index + 1}. ${car.model}`)
 
-        return bot.sendMessage(chatId,`\nВи вже додали:<b>${str}</b>\nBведіть номер вашого транспортного засобу.`, {parse_mode: "HTML"})
+        return bot.sendMessage(chatId, `\nВи вже додали:<b>${str}</b>\nBведіть номер вашого транспортного засобу`, {parse_mode: "HTML"})
 
     } catch (err) {
         console.log(err)
@@ -37,6 +46,9 @@ async function setSubtype(msg, chatId) {
         if (!car.subtype) {
             await Car.updateOne({'_id': id}, {subtype: subtype})
             return bot.sendMessage(chatId, `\nВкажiть вантажопідйомність`, options.carryingCategories);
+        } else {
+            const user = await User.findOne({chat_id: chatId}).populate('cars').lean().exec()
+            return verifyUser(user, chatId)
         }
     } catch (err) {
         console.log(err)
@@ -56,8 +68,10 @@ async function setCarrying(msg, chatId) {
         const car = user.cars.find(car => !car.carrying)
         if (car) {
             await Car.updateOne({"_id": car._id}, {carrying: categories[carryCategory]})
+            return bot.sendMessage(chatId, `\nЧи є у вас iншi авто❓`, options.addAuto);
+        } else {
+            return verifyUser(user, chatId)
         }
-        return bot.sendMessage(chatId, `\nЧи э у вас iншi авто?`, options.addAuto);
     } catch (err) {
         console.log(err)
     }
@@ -66,16 +80,21 @@ async function setCarrying(msg, chatId) {
 async function setRegion(msg, chatId) {
     try {
         const region = msg.data.split("_")[1]
-        const user = await User.findOne({chat_id: chatId}).lean().exec()
+        const user = await User.findOne({chat_id: chatId}).populate('cars').lean().exec()
         const choosedRegions = user.radius.regions
         const idx = choosedRegions.findIndex(item => item === helpers.regions[region])
         let updated = []
+
+        if (user.radius.done) {
+           return verifyUser(user, chatId)
+        }
+
         if (region === 'continue') {
             if (!choosedRegions.length) {
-                return bot.sendMessage(chatId, `<b>Будь ласка,оберiть район</b>`,{parse_mode: "HTML"})
+                return bot.sendMessage(chatId, `<b>Будь ласка,оберiть район</b>`, {parse_mode: "HTML"})
             }
             await User.updateOne({chat_id: chatId}, {radius: {regions: choosedRegions, done: true}})
-            return bot.sendMessage(chatId, `Коли ви маєте можливість нам допомогти?\n\nЩодня чи лише в середу з 12 до 17?`, options.schedule)
+            return bot.sendMessage(chatId, `Коли ви маєте можливість нам допомогти?🕒\n\nЩодня чи лише в середу з 12 до 17?`, options.schedule)
         }
         if (!choosedRegions.length) {
             updated.push(helpers.regions[region])
@@ -96,9 +115,15 @@ async function setRegion(msg, chatId) {
             inline_keyboard.push([{text, callback_data: `setRegion_${key}`}])
         }
         inline_keyboard.push([{text: 'Далi', callback_data: `setRegion_continue`}])
-        const opt = {parse_mode: "HTML"}
-        opt.reply_markup = JSON.stringify({inline_keyboard})
-        return bot.sendMessage(chatId, `\nДе ви готові їздити?`, opt)
+        const prevMsg = msg.message.message_id
+        const opt = {
+            parse_mode: "HTML",
+            reply_markup: JSON.stringify({inline_keyboard}),
+            chat_id: chatId,
+            message_id: prevMsg
+        }
+
+        return bot.editMessageText(`\nДе ви готові їздити❓`, opt)
     } catch (err) {
         console.log(err)
     }
@@ -106,6 +131,9 @@ async function setRegion(msg, chatId) {
 
 async function setSchedule(msg, chatId) {
     try {
+        const user = await User.findOne({chat_id: chatId}).populate('cars').lean().exec()
+       if(user.schedule) return verifyUser(user, chatId)
+
         let schedule = msg.data.split("_")[1]
         schedule = schedule === "everyday" ? "Кожний день" :
             schedule === "wednesday" && "Що середи 12-17"
@@ -115,9 +143,9 @@ async function setSchedule(msg, chatId) {
         for (let [key, value] of Object.entries(helpers.districts)) {
             inline_keyboard.push([{text: value, callback_data: `setDistrict_${key}`}])
         }
-        const opt ={parse_mode: "HTML"}
+        const opt = {parse_mode: "HTML"}
         opt.reply_markup = JSON.stringify({inline_keyboard})
-        return bot.sendMessage(chatId, `Де ви мешкаєте?`, opt)
+        return bot.sendMessage(chatId, `Де ви мешкаєте❓`, opt)
     } catch (err) {
         console.log(err)
     }
@@ -125,6 +153,9 @@ async function setSchedule(msg, chatId) {
 
 async function setDistrict(msg, chatId) {
     try {
+        const user = await User.findOne({chat_id: chatId}).populate('cars').lean().exec()
+        if(user.district) return verifyUser(user, chatId)
+
         const category = msg.data.split("_")[1]
         await User.updateOne({chat_id: chatId}, {district: helpers.districts[category]})
         const microDistricts = helpers.microdistrics[category]
@@ -135,7 +166,7 @@ async function setDistrict(msg, chatId) {
         inline_keyboard.push([{text: 'Iнше', callback_data: `setMicroDistrict_Iнше`}])
         const opt = {parse_mode: "HTML"}
         opt.reply_markup = JSON.stringify({inline_keyboard})
-        return bot.sendMessage(chatId, `Оберiть мiкрорайон`, opt)
+        return bot.sendMessage(chatId, `Оберiть мiкрорайон📍`, opt)
 
     } catch (err) {
         console.log(err)
@@ -144,6 +175,10 @@ async function setDistrict(msg, chatId) {
 
 async function setMicroDistrict(msg, chatId) {
     try {
+        const user = await User.findOne({chat_id: chatId}).populate('cars').lean().exec()
+
+        if(user.microdistrict) return verifyUser(user, chatId)
+
         const category = msg.data.split("_")[1]
         if (category === 'Iнше') await User.updateOne({chat_id: chatId}, {microdistrict: category})
         else {
@@ -152,7 +187,7 @@ async function setMicroDistrict(msg, chatId) {
             await User.updateOne({chat_id: chatId}, {microdistrict: micro})
         }
 
-        return bot.sendMessage(chatId, `<b>Якщо не важко, то введіть адресу</b>`, {parse_mode: "HTML"})
+        return bot.sendMessage(chatId, `<b>Якщо не важко, то введіть адресу</b>🏠`, {parse_mode: "HTML"})
     } catch (err) {
         console.log(err)
     }
@@ -160,11 +195,14 @@ async function setMicroDistrict(msg, chatId) {
 
 async function setCertification(msg, chatId) {
     try {
+        const user = await User.findOne({chat_id: chatId}).populate('cars').lean().exec()
+       if(user.certification) return  verifyUser(user, chatId)
+
         const isVolunteer = msg.data.split("_")[1]
         if (isVolunteer === 'yes') await User.updateOne({chat_id: chatId}, {certification: "Yes"})
         else await User.updateOne({chat_id: chatId}, {certification: "No"})
 
-        return bot.sendMessage(chatId,`<b>Дякуємо, ви завершили реєстрацію</b>`,{parse_mode: "HTML"})
+        return bot.sendMessage(chatId, `<b>Дякуємо, ви завершили реєстрацію</b>👏👌`, {parse_mode: "HTML"})
     } catch (err) {
         console.log(err)
     }

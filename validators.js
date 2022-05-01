@@ -9,4 +9,8 @@ function validateCarNumber(number){
     return true
 }
 
-module.exports = {validatePhoneNumber,validateCarNumber}
+function validationFullname(fullname){
+    if(fullname.trim().split(" ").length<3) return false
+    return true
+}
+module.exports = {validatePhoneNumber,validateCarNumber,validationFullname}

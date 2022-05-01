@@ -1,34 +1,38 @@
 const options = require("./options");
+const converter = require('json-2-csv');
 const {bot} = require('./bot')
 const helpers = require("./helpers");
 const axios = require("axios");
 const Car = require("./models/Car");
 const User = require("./models/User");
+const {validateCarNumber} = require('./validators')
+const fs = require('fs')
+const path = require('path')
 require('dotenv').config()
 
 
 async function verifyUser(user, chatId) {
     let inline_keyboard = []
-    if (!user.name) return bot.sendMessage(chatId, `\nВведіть ваше прізвище, ім’я та по батькові`,{parse_mode: "HTML"});
+    if (!user.name) return bot.sendMessage(chatId, `\nВведіть ваше прізвище, ім’я та по батькові`, {parse_mode: "HTML"});
     if (!user.cars_approved) {
         if (!user.cars.length) {
-            return bot.sendMessage(chatId, `\nBведіть номер вашого транспортного засобу`,{parse_mode: "HTML"});
+            return bot.sendMessage(chatId, `\nBведіть номер вашого транспортного засобу🚗`, {parse_mode: "HTML"});
         } else {
 
-            const subtypeCheck = user.cars.find(car => (car.type === 'Легковий' || car.type === 'Автобус') && !car.subtype)
-            if (subtypeCheck) {
-                return subtypeCheck(car, chatId)
+            const carWithourSB = user.cars.find(car => (car.type === 'Легковий' || car.type === 'Автобус') && !car.subtype)
+            if (carWithourSB) {
+                return subtypeCheck(carWithourSB, chatId)
             }
 
             const carryingCheck = user.cars.find(car => !car.carrying)
             if (carryingCheck) {
-                return bot.sendMessage(chatId, `\nВкажiть вантажопідйомність`, options.carryingCategories);
+                return bot.sendMessage(chatId, `\nВкажiть вантажопідйомність💪`, options.carryingCategories);
             }
-            return bot.sendMessage(chatId, `\nЧи э у вас iншi авто?`, options.addAuto);
+            return bot.sendMessage(chatId, `\nЧи є у вас iншi авто❓`, options.addAuto);
         }
     }
     if (!user.tel_number) {
-        return bot.sendMessage(chatId, `Будь ласка ,поділіться вашим контактом`, options.shareContact)
+        return bot.sendMessage(chatId, `\nБудь ласка ,поділиться вашим контактом📞`, options.shareContact)
     }
 
     if (!user.radius.done) {
@@ -39,11 +43,11 @@ async function verifyUser(user, chatId) {
         inline_keyboard.push([{text: 'Далi', callback_data: `setRegion_continue`}])
         const opt = {parse_mode: "HTML"}
         opt.reply_markup = JSON.stringify({inline_keyboard})
-        return bot.sendMessage(chatId, `\nДе ви готові їздити?`, opt)
+        return bot.sendMessage(chatId, `\nДе ви готові їздити❓`, opt)
     }
 
     if (!user.schedule) {
-        return bot.sendMessage(chatId, `Оберiть зручний час для допомоги `, options.schedule)
+        return bot.sendMessage(chatId, `Оберiть зручний час для допомоги🕒`, options.schedule)
     }
 
     if (!user.district) {
@@ -52,7 +56,7 @@ async function verifyUser(user, chatId) {
         }
         const opt = {parse_mode: "HTML"}
         opt.reply_markup = JSON.stringify({inline_keyboard})
-        return bot.sendMessage(chatId, `Де ви мешкаєте?`, opt)
+        return bot.sendMessage(chatId, `Де ви мешкаєте❓`, opt)
     }
 
     if (!user.microdistrict) {
@@ -70,11 +74,11 @@ async function verifyUser(user, chatId) {
         inline_keyboard.push([{text: 'Iнше', callback_data: `setMicroDistrict_Iнше`}])
         const opt = {parse_mode: "HTML"}
         opt.reply_markup = JSON.stringify({inline_keyboard})
-        return bot.sendMessage(chatId, `Оберiть мiкрорайон`, opt)
+        return bot.sendMessage(chatId, `Оберiть мiкрорайон📍`, opt)
     }
 
     if (!user.adress) {
-        return bot.sendMessage(chatId, `<b>Якщо не важко, то введіть адресу</b>`,{parse_mode: "HTML"})
+        return bot.sendMessage(chatId, `Якщо не важко, то введіть адресу🏠`, {parse_mode: "HTML"})
     }
 
     if (!user.certification) {
@@ -84,14 +88,15 @@ async function verifyUser(user, chatId) {
         ]
         const opt = {parse_mode: "HTML"}
         opt.reply_markup = JSON.stringify({inline_keyboard})
-        return bot.sendMessage(chatId, `Чи є у вас посвідчення волонтера?`, opt)
+        return bot.sendMessage(chatId, `Чи є у вас посвідчення волонтера❓`, opt)
     }
-    return bot.sendMessage(chatId,`<b>Дякуємо, ви завершили реєстрацію</b>`,{parse_mode: "HTML"})
+    return bot.sendMessage(chatId, `<b>Дякуємо, ви завершили реєстрацію</b>👏👌`, {parse_mode: "HTML"})
 
 }
 
 async function createCar(msgText, chatId) {
     try {
+        if (!validateCarNumber(helpers.toENG(msgText))) return bot.sendMessage(chatId, `⛔Не вірний формат.Номер повинен бути у форматі ХХ0000ХХ⛔`, {parse_mode: "HTML"})
         let url = "https://baza-gai.com.ua/nomer/" + helpers.toENG(msgText);
         const response = await axios.get(url, {
             headers: {
@@ -125,22 +130,22 @@ async function createCar(msgText, chatId) {
                     parse_mode: "HTML",
                     reply_markup: JSON.stringify({inline_keyboard})
                 }
-                const str = `\nВаш транспорт: <b>${vendor} ${model} ${model_year}</b>\nОберiть тип транспортного засобу:`
+                const str = `\nВаш транспорт: <b>${vendor} ${model} ${model_year}</b>\nОберiть тип транспортного засобу💁`
 
                 return bot.sendMessage(chatId, str, opt);
 
             }
-            const str = `\nВаш транспорт: <b>${vendor} ${model} ${model_year}</b> було успiшно додано\nЧи э у вас iншi авто?`
+            const str = `\nВаш транспорт: <b>${vendor} ${model} ${model_year}</b> було успiшно додано✅\nЧи э у вас iншi авто?`
             return bot.sendMessage(chatId, str, options.addAuto);
         }
     } catch (err) {
-        return bot.sendMessage(chatId, `Нет такого тс в базе`, {parse_mode: "HTML"})
+        return bot.sendMessage(chatId, `Авто зa вказаним номером на знайдено.Будь ласка,спробуйте ще раз🔃`, {parse_mode: "HTML"})
     }
 }
 
 async function subtypeCheck(car, chatId) {
     const inline_keyboard = []
-    const categories = car.type === 'Легковий' ? ['Седан', 'Купе', 'Универсал', 'Комбi', 'Хэчбэк', 'Всюдихід'] :
+    const categories = car.type === 'Легковий' ? ['Седан', 'Купе', 'Універсал', 'Комбi', 'Хэчбэк', 'Всюдихід'] :
         car.type === 'Автобус' && ['Пасажирський', 'Вантажний']
     categories.forEach(category => {
         inline_keyboard.push([{text: `${category}`, callback_data: `setSubtype_${car._id}_${category}`}])
@@ -149,7 +154,7 @@ async function subtypeCheck(car, chatId) {
         parse_mode: "HTML",
         reply_markup: JSON.stringify({inline_keyboard})
     }
-    const str = `\nВаш транспорт: <b>${car.model}</b>\nОберiть тип транспортного засобу:`
+    const str = `\nВаш транспорт: <b>${car.model}</b>\nОберiть тип транспортного засобу💁`
     return bot.sendMessage(chatId, str, opt);
 }
 
@@ -165,7 +170,7 @@ async function savePhone(phoneNumber, chatId) {
         inline_keyboard.push([{text: 'Далi', callback_data: `setRegion_continue`}])
         const opt = {parse_mode: "HTML"}
         opt.reply_markup = JSON.stringify({inline_keyboard})
-        return bot.sendMessage(chatId, `\nДе ви готові їздити?`, opt)
+        return bot.sendMessage(chatId, `\nДе ви готові їздити❓`, opt)
     } catch (err) {
         console.log(err)
     }
@@ -180,10 +185,22 @@ async function setAdress(adress, chatId) {
         ]
         const opt = {parse_mode: "HTML"}
         opt.reply_markup = JSON.stringify({inline_keyboard})
-        return bot.sendMessage(chatId, `Чи є у вас посвідчення волонтера?`, opt)
+        return bot.sendMessage(chatId, `Чи є у вас посвідчення волонтера❓`, opt)
     } catch (err) {
         console.log(err)
     }
+}
+
+async function downloadInfo(chatId) {
+    const allUsers = await User.find().populate('cars').lean().exec()
+    converter.json2csv(allUsers, (err, csv) => {
+        if (err) {
+            throw err;
+        }
+        fs.writeFileSync('download.csv',csv)
+        bot.sendDocument(chatId,'download.csv')
+        return fs.unlinkSync('download.csv')
+    });
 }
 
 module.exports = {
@@ -191,5 +208,6 @@ module.exports = {
     verifyUser,
     createCar,
     savePhone,
-    setAdress
+    setAdress,
+    downloadInfo
 }
