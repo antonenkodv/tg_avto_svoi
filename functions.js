@@ -95,7 +95,7 @@ async function verifyUser(user, chatId) {
 
 async function createCar(msgText, chatId) {
     try {
-        if (!validateCarNumber(helpers.toENG(msgText))){
+        if (!validateCarNumber(helpers.toENG(msgText))) {
             return bot.sendMessage(chatId, `⛔Не вірний формат.Номер повинен бути у форматі хх0000хх⛔`, {parse_mode: "HTML"})
         }
         let url = "https://baza-gai.com.ua/nomer/" + helpers.toENG(msgText);
@@ -113,10 +113,10 @@ async function createCar(msgText, chatId) {
                 vendor,
                 operations: [{color: {ua: color}, kind: {ua: kind}}]
             } = response.data
+
             const newCar = new Car({model: `${vendor} ${model} ${model_year}`, digits, color, type: kind})
             const car = await newCar.save()
             await User.updateOne({chat_id: chatId}, {$push: {cars: car._doc._id}})
-
             const inline_keyboard = []
             if (kind === 'Легковий' || kind === 'Автобус') {
                 const categories = kind === 'Легковий' ? ['Седан', 'Купе', 'Универсал', 'Комбi', 'Хэчбэк', 'Всюдихід'] :
@@ -136,8 +136,11 @@ async function createCar(msgText, chatId) {
                 return bot.sendMessage(chatId, str, opt);
 
             }
-            const str = `\nВаш транспорт: <b>${vendor} ${model} ${model_year}</b> було успiшно додано✅\nЧи э у вас iншi авто❓`
-            return bot.sendMessage(chatId, str, options.addAuto);
+            const opt = {
+                parse_mode: "HTML",
+                reply_markup: options.carryingCategories.reply_markup,
+            }
+            return bot.sendMessage(chatId,`\nВкажiть вантажопідйомність`, opt);
         }
     } catch (err) {
         return bot.sendMessage(chatId, `Авто зa вказаним номером на знайдено.Будь ласка,спробуйте ще раз🔃`, {parse_mode: "HTML"})
@@ -163,6 +166,9 @@ async function savePhone(phoneNumber, chatId) {
     try {
         await User.updateOne({chat_id: chatId}, {tel_number: phoneNumber})
         const user = await User.findOne({chat_id: chatId})
+        if (user.done) {
+            return bot.sendMessage(chatId, `\nВаш номер успішно оновленo✅`, options.settings)
+        }
         const inline_keyboard = []
         for (let key in helpers.regions) {
             const text = `${user.radius.regions.find(region => region === key) ? "✅" : "➖"} ${helpers.regions[key]}`
@@ -194,14 +200,47 @@ async function saveAdress(adress, chatId) {
 
 async function downloadInfo(chatId) {
     const allUsers = await User.find().populate('cars').lean().exec()
-    converter.json2csv(allUsers, (err, csv) => {
+    const csvUsers = []
+    allUsers.length && allUsers.forEach(user => {
+        const obj = {
+            "ID водія" : user._id,
+            "ПІБ" : user.name ? user.name : "Відсутнє",
+            "Автомобілі" : user.cars.length ? formateCars(user.cars) : "Відсутні",
+            "Номер телефону" : user.tel_number ? user.tel_number :"Відсутній",
+            "Район мешкання" : user.district && user.microdistrict ?`${user.district}(${user.microdistrict})` : "Відсутній",
+            "Адреса" : user.adress ? user.adress : "Відсутня",
+            "Статус" : user.status ? "Активний": "Не активний",
+            "Дата реєстраціі" : formateDate(user.created_at),
+            "Остання дія" : formateDate(user.updated_at)
+        }
+        csvUsers.push(obj)
+    })
+
+    function formateDate(date){
+        const year = date.getFullYear()
+        const month = date.getMonth()+1 < 11 ? `0${ date.getMonth()+1}` : date.getMonth()+1
+        const day = date.getDate()<10 ? `0${date.getDate()}` : date.getDate()
+
+        const hours = date.getHours() < 10 ? `0${hours}`:date.getHours()
+        const minutes = date.getMinutes() <10 ?`0${date.getMinutes()}` : date.getMinutes()
+        const seconds = date.getSeconds() < 10 ? `0${date.getSeconds()}` :  date.getSeconds()
+        return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`
+    }
+    function formateCars(cars){
+        let str = ""
+        cars.forEach(car=>str += `\n${car.model}`)
+        return str
+    }
+
+    converter.json2csv(csvUsers, (err, csv) => {
         if (err) {
             throw err;
         }
-        fs.writeFileSync('download.csv',csv)
-        bot.sendDocument(chatId,'download.csv')
+        fs.writeFileSync('download.csv', csv)
+        bot.sendDocument(chatId, 'download.csv')
         return fs.unlinkSync('download.csv')
     });
+
 }
 
 module.exports = {

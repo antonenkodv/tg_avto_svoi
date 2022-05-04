@@ -71,51 +71,23 @@ module.exports = {
             ]
         })
     },
-    settings: {
+    settings_menu: {
         parse_mode: "HTML",
         reply_markup: JSON.stringify({
             one_time_keyboard: true,
             keyboard: [
                 [{
-                    text: "Налаштування",
-                }],
-            ]
-        })
-    },
-    settings_menu: {
-        parse_mode: "HTML",
-        reply_markup: JSON.stringify({
-            one_time_keyboard: true,
-            inline_keyboard: [
-                [{
-                    text: "Ім'я",
-                    callback_data: `setSchedule_everyday`
-                }],
-                [{
                     text: "Номер телефону",
-                    callback_data: `setSchedule_everyday`
-                }],
-                [{
-                    text: "Aдресу",
-                    callback_data: `setSchedule_everyday`
-                }],
-                [{
-                    text: "Авто",
-                    callback_data: `setSchedule_everyday`
-                }]
-                ,
-                [{
+                }, {
                     text: "Графік",
-                    callback_data: `setSchedule_everyday`
+                }],
+                [{
+                    text: "Додати авто",
+                }, {
+                    text: "Видалити авто",
                 }],
                 [{
                     text: "Район пошуку",
-                    callback_data: `setSchedule_everyday`
-                }]
-                ,
-                [{
-                    text: "Статус",
-                    callback_data: `setSchedule_everyday`
                 }]
             ]
         })

@@ -7,6 +7,7 @@ const user = new Schema({
         chat_id: {type: String, required: true},
         cars: [{type: Types.ObjectId, ref: 'Car'}],
         cars_approved: {type: Boolean, default: false},
+        done: {type: Boolean, default: false},
         type: {type: String, default: "driver"},
         status: {type: Boolean, default: false},
         radius: {done: {type: Boolean, default: false}, regions: [{type: String}]},

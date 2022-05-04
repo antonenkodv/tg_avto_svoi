@@ -71,7 +71,12 @@ async function setCarrying(msg, chatId) {
                 chat_id: chatId,
                 message_id: msg.message.message_id,
             }
-            const {  model } = car
+            const {model} = car
+            if (user.done) {
+                await User.updateOne({chat_id: chatId}, {cars_approved: true})
+                bot.deleteMessage(chatId, msg.message.message_id)
+                return bot.sendMessage(chatId, `\nВаш транспорт: <b> ${model}</b> було успiшно додано✅`, options.settings)
+            }
             const str = `\nВаш транспорт: <b> ${model}</b> було успiшно додано✅\nЧи э у вас iншi авто❓`
             return bot.editMessageText(str, opt);
         } else {
@@ -92,10 +97,15 @@ async function setRegion(msg, chatId) {
         let opt = new Object()
 
         if (region === 'continue') {
+
             if (!choosedRegions.length) {
                 return bot.sendMessage(chatId, `<b>Будь ласка,оберiть район</b>`, {parse_mode: "HTML"})
             }
             await User.updateOne({chat_id: chatId}, {radius: {regions: choosedRegions, done: true}})
+            if (user.done) {
+                bot.deleteMessage(chatId, msg.message.message_id)
+                return bot.sendMessage(chatId, `Райони пошуку були оновлені✅`, options.settings)
+            }
             opt = {
                 parse_mode: "HTML",
                 reply_markup: options.schedule.reply_markup,
@@ -142,6 +152,11 @@ async function setSchedule(msg, chatId) {
             schedule === "wednesday" && "Що середи 12-17"
 
         await User.updateOne({chat_id: chatId}, {schedule})
+        const user = await User.findOne({chat_id: chatId})
+        if (user.done) {
+            bot.deleteMessage(chatId ,msg.message.message_id )
+            return bot.sendMessage(chatId, `\nВаш графік успішно оновлено✅`, options.settings)
+        }
         const inline_keyboard = []
         for (let [key, value] of Object.entries(helpers.districts)) {
             inline_keyboard.push([{text: value, callback_data: `setDistrict_${key}`}])
@@ -203,10 +218,35 @@ async function setMicroDistrict(msg, chatId) {
 async function setCertification(msg, chatId) {
     try {
         const isVolunteer = msg.data.split("_")[1]
-        if (isVolunteer === 'yes') await User.updateOne({chat_id: chatId}, {certification: "Yes", status: true})
-        else await User.updateOne({chat_id: chatId}, {certification: "No", status: true})
+        if (isVolunteer === 'yes') await User.updateOne({chat_id: chatId}, {
+            certification: "Yes",
+            status: true,
+            done: true
+        })
+        else await User.updateOne({chat_id: chatId}, {certification: "No", status: true, done: true})
         bot.deleteMessage(chatId, msg.message.message_id)
-        return bot.sendMessage(chatId, `<b>Дякуємо, ви завершили реєстрацію</b>👏👌`, options.settings)
+        return bot.sendMessage(chatId, `<b>Дякуємо, ви завершили реєстрацію</b>👏👌\n\nНа разі ваш статус є <b>активним</b>\n\nЗмінити статус або інші персональні дані можна у розділі <b>Налаштування</b>`, options.settings)
+    } catch (err) {
+        console.log(err)
+    }
+}
+
+async function deleteCar(msg, chatId) {
+    try {
+        const car_id = msg.data.split("_")[1]
+        await User.updateOne({chat_id: chatId}, {$pull: {cars: car_id}})
+        await Car.deleteOne({_id: car_id})
+        await bot.deleteMessage(chatId, msg.message.message_id)
+        return bot.sendMessage(chatId, `Ваше авто було успішно видалено✅`, options.settings)
+    } catch (err) {
+        console.log(err)
+    }
+}
+
+async function backToMenu(msg, chatId) {
+    try {
+        await bot.deleteMessage(chatId, msg.message.message_id)
+        return bot.sendMessage(chatId, `<b>Налаштування</b>`, options.settings)
     } catch (err) {
         console.log(err)
     }
@@ -221,6 +261,8 @@ module.exports = {
     setSchedule,
     setDistrict,
     setMicroDistrict,
-    setCertification
+    setCertification,
+    deleteCar,
+    backToMenu
 }
 
