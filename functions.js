@@ -7,7 +7,6 @@ const Car = require("./models/Car");
 const User = require("./models/User");
 const {validateCarNumber} = require('./validators')
 const fs = require('fs')
-const path = require('path')
 require('dotenv').config()
 
 
@@ -96,7 +95,9 @@ async function verifyUser(user, chatId) {
 
 async function createCar(msgText, chatId) {
     try {
-        if (!validateCarNumber(helpers.toENG(msgText))) return bot.sendMessage(chatId, `⛔Не вірний формат.Номер повинен бути у форматі ХХ0000ХХ⛔`, {parse_mode: "HTML"})
+        if (!validateCarNumber(helpers.toENG(msgText))){
+            return bot.sendMessage(chatId, `⛔Не вірний формат.Номер повинен бути у форматі хх0000хх⛔`, {parse_mode: "HTML"})
+        }
         let url = "https://baza-gai.com.ua/nomer/" + helpers.toENG(msgText);
         const response = await axios.get(url, {
             headers: {
@@ -135,7 +136,7 @@ async function createCar(msgText, chatId) {
                 return bot.sendMessage(chatId, str, opt);
 
             }
-            const str = `\nВаш транспорт: <b>${vendor} ${model} ${model_year}</b> було успiшно додано✅\nЧи э у вас iншi авто?`
+            const str = `\nВаш транспорт: <b>${vendor} ${model} ${model_year}</b> було успiшно додано✅\nЧи э у вас iншi авто❓`
             return bot.sendMessage(chatId, str, options.addAuto);
         }
     } catch (err) {
@@ -176,7 +177,7 @@ async function savePhone(phoneNumber, chatId) {
     }
 }
 
-async function setAdress(adress, chatId) {
+async function saveAdress(adress, chatId) {
     try {
         await User.updateOne({chat_id: chatId}, {adress})
         const inline_keyboard = [
@@ -208,6 +209,6 @@ module.exports = {
     verifyUser,
     createCar,
     savePhone,
-    setAdress,
+    saveAdress,
     downloadInfo
 }

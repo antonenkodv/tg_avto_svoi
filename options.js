@@ -3,7 +3,7 @@ module.exports = {
         parse_mode: "HTML",
         reply_markup: JSON.stringify({
             one_time_keyboard: true,
-            remove_keyboard : true,
+            remove_keyboard: true,
             keyboard: [
                 [{
                     text: "Приєднатися",
@@ -12,7 +12,6 @@ module.exports = {
         })
     },
     addAuto: {
-        parse_mode: "HTML",
         reply_markup: JSON.stringify({
             one_time_keyboard: true,
             inline_keyboard: [
@@ -22,14 +21,13 @@ module.exports = {
         })
     },
     carryingCategories: {
-        parse_mode: "HTML",
         reply_markup: JSON.stringify({
             one_time_keyboard: true,
             inline_keyboard: [
                 [{text: 'меньше 1000 кг ', callback_data: 'setCarrying_A'}],
-                    [{text: 'від 1000кг до 3000кг', callback_data: 'setCarrying_B'}],
+                [{text: 'від 1000кг до 3000кг', callback_data: 'setCarrying_B'}],
                 [{text: 'від 3000кг до 5000кг', callback_data: 'setCarrying_C'}],
-                    [{text: 'більше 5000кг', callback_data: 'setCarrying_D'}]
+                [{text: 'більше 5000кг', callback_data: 'setCarrying_D'}]
             ]
         })
     },
@@ -47,7 +45,6 @@ module.exports = {
         })
     },
     schedule: {
-        parse_mode: "HTML",
         reply_markup: JSON.stringify({
             one_time_keyboard: true,
             inline_keyboard: [
@@ -59,6 +56,67 @@ module.exports = {
                     text: "Сeреда 12-17",
                     callback_data: `setSchedule_wednesday`
                 }],
+            ]
+        })
+    },
+    settings: {
+        parse_mode: "HTML",
+        reply_markup: JSON.stringify({
+            one_time_keyboard: true,
+            remove_keyboard: true,
+            keyboard: [
+                [{
+                    text: "Налаштування",
+                }]
+            ]
+        })
+    },
+    settings: {
+        parse_mode: "HTML",
+        reply_markup: JSON.stringify({
+            one_time_keyboard: true,
+            keyboard: [
+                [{
+                    text: "Налаштування",
+                }],
+            ]
+        })
+    },
+    settings_menu: {
+        parse_mode: "HTML",
+        reply_markup: JSON.stringify({
+            one_time_keyboard: true,
+            inline_keyboard: [
+                [{
+                    text: "Ім'я",
+                    callback_data: `setSchedule_everyday`
+                }],
+                [{
+                    text: "Номер телефону",
+                    callback_data: `setSchedule_everyday`
+                }],
+                [{
+                    text: "Aдресу",
+                    callback_data: `setSchedule_everyday`
+                }],
+                [{
+                    text: "Авто",
+                    callback_data: `setSchedule_everyday`
+                }]
+                ,
+                [{
+                    text: "Графік",
+                    callback_data: `setSchedule_everyday`
+                }],
+                [{
+                    text: "Район пошуку",
+                    callback_data: `setSchedule_everyday`
+                }]
+                ,
+                [{
+                    text: "Статус",
+                    callback_data: `setSchedule_everyday`
+                }]
             ]
         })
     }
